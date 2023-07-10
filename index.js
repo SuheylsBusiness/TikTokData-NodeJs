@@ -8,7 +8,7 @@ app.use(bodyParser.json());
 const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: 'test',
+  password: 'Z6PKing7W1',
   database: 'tiktokdata',
   connectionLimit: 10,
 });
