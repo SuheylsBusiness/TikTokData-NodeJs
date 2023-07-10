@@ -21,7 +21,7 @@ app.post('/api/data', async (req, res) => {
         const [rows, fields] = await pool.execute(query, [type, JSON.stringify(data)]);
         res.status(201).json({ message: 'Data inserted successfully!' });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error', message:error });
     }
 });
 
