@@ -21,7 +21,8 @@ app.post('/api/data', async (req, res) => {
         const [rows, fields] = await pool.execute(query, [type, JSON.stringify(data)]);
         res.status(201).json({ message: 'Data inserted successfully!' });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error', message:error });
+        console.error('Error inserting data:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -38,6 +39,7 @@ app.get('/api/data', async (req, res) => {
         const [rows, fields] = await pool.execute(query, queryParams);
         res.status(200).json(rows);
     } catch (error) {
+        console.error('Error retrieving data:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
