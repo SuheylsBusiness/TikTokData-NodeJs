@@ -71,8 +71,8 @@ app.get('/api/data', authenticate, async (req, res) => {
       const [rows, fields] = await pool.execute('SELECT * FROM data');
       let filteredRows = [];
       for (let row of rows) {
+        if (type && row.type !== type) continue; // Check 'type' in row level
         let filteredData = row.data.filter(item => { // No need for JSON.parse(row.data)
-          if (type && item.type !== type) return false;
           if (period && item.period != period) return false;
           if (country && item.country !== country) return false;
           if (industry && item.industry !== industry) return false;
