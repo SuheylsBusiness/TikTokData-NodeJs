@@ -60,24 +60,24 @@ app.post('/api/data', authenticate, async (req, res) => {
 
 app.get('/api/data', authenticate, async (req, res) => {
     const type = req.query.type;
-    const period = req.query.period;
+    const period = req.query.period ? parseInt(req.query.period) : null;
     const country = req.query.country;
-    const industry = req.query.industry;
-    const commercial_music = req.query.commercial_music === 'true';
-    const new_on_board = req.query.new_on_board === 'true';
+    const industry = req.query.industry ? parseInt(req.query.industry) : null;
+    const commercial_music = req.query.commercial_music ? req.query.commercial_music === 'true' : null;
+    const new_on_board = req.query.new_on_board ? req.query.new_on_board === 'true' : null;
     const rank_type = req.query.rank_type;
   
     try {
       const [rows, fields] = await pool.execute('SELECT * FROM data');
       let filteredRows = [];
       for (let row of rows) {
-        if (type && row.type !== type) continue; // Check 'type' in row level
-        let filteredData = row.data.filter(item => { // No need for JSON.parse(row.data)
-          if (period && item.period != period) return false;
+        if (type && row.type !== type) continue;
+        let filteredData = row.data.filter(item => {
+          if (period && item.period !== period) return false;
           if (country && item.country !== country) return false;
           if (industry && item.industry !== industry) return false;
-          if (commercial_music && item.commercial_music !== commercial_music) return false;
-          if (new_on_board && item.new_on_board !== new_on_board) return false;
+          if (commercial_music !== null && item.commercial_music !== commercial_music) return false;
+          if (new_on_board !== null && item.new_on_board !== new_on_board) return false;
           if (rank_type && item.rank_type !== rank_type) return false;
           return true;
         });
