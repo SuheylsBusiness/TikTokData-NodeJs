@@ -77,6 +77,7 @@ app.get('/api/get-pending-request', authenticate, async (req, res) => {
 // API to submit the playUrl for a pending request
 app.post('/api/submit-playurl', authenticate, (req, res) => {
   const { requestId, playUrl } = req.body;
+  console.log(pendingRequests);
   if (!requestId || !playUrl) {
     return res.status(400).json({ error: 'requestId and playUrl are required' });
   }
