@@ -102,10 +102,10 @@ app.post('/api/submit-playurl', authenticate, async (req, res) => {
   await pool.execute(updateQuery, [playUrl, requestId]);
 
   delete pendingRequests[requestId];
-  pendingRes.json({ playUrl });
+  //pendingRes.json({ playUrl });
 
   // Not needed anymore since we already send a response using pendingRes.json({ playUrl });
-  // res.status(200).json({ message: 'PlayUrl successfully submitted' });
+  res.status(200).json({ message: 'PlayUrl successfully submitted' });
 });
 
 app.get('/api/get-playurl', authenticate, async (req, res) => {
