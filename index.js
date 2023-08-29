@@ -45,6 +45,7 @@ app.get('/api/tiktok-audio', authenticate, (req, res) => {
       apiRes.on('end', () => {
           try {
               const jsonData = JSON.parse(data);
+              console.log(jsonData);
               const playUrl = jsonData.value.playUrl;
               if (playUrl) {
                   res.json({ playUrl });
