@@ -73,7 +73,17 @@ app.get('/api/get-pending-request', authenticate, async (req, res) => {
     res.json(rows);
   }
 });
+app.post('/api/clear-pending-requests', authenticate, async (req, res) => {
+  try {
+    const deleteQuery = 'DELETE FROM pending_requests';
+    await pool.execute(deleteQuery);
 
+    res.status(200).json({ message: 'All records successfully cleared!' });
+  } catch (error) {
+    console.error('Error clearing records:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 // API to submit the playUrl for a pending request
 app.post('/api/submit-playurl', authenticate, async (req, res) => {
   const { requestId, playUrl } = req.body;
