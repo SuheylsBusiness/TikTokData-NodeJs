@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const bodyParser = require('body-parser');
+const fetch = require('node-fetch');
 
 const app = express();
 app.use(bodyParser.json());
@@ -24,6 +25,34 @@ const authenticate = (req, res, next) => {
     res.status(401).json({ error: 'Unauthorized' });
   }
 };
+
+app.get('/api/tiktok-playurl', authenticate, async (req, res) => {
+  const itemId = req.query.itemId;
+
+  if (!itemId) {
+      return res.status(400).json({ error: 'itemId parameter is required' });
+  }
+
+  const tikTokUrl = `https://www.tiktok.com/embed/v2/${itemId}`;
+  const encodedTikTokUrl = Buffer.from(tikTokUrl).toString('base64');
+  
+  const fetchUrl = `https://qload.info/de/tiktok-audio/get-data?link=${encodedTikTokUrl}&signature=_02B4Z6wo00f01NvETdgAAIBDeYNaAuSJQ6TbzE1AAP2Z08`;
+
+  try {
+      const response = await fetch(fetchUrl);
+      const data = await response.json();
+      const playUrl = data.value.playUrl;
+
+      if (playUrl) {
+          return res.json({ playUrl });
+      } else {
+          throw new Error('playUrl not found');
+      }
+  } catch (error) {
+      console.error('Error fetching playUrl:', error);
+      return res.status(500).json({ error: 'Failed to retrieve playUrl' });
+  }
+});
 
 // API Endpoint to drop and recreate "data" table
 app.post('/api/recreate-table', authenticate, async (req, res) => {
@@ -92,26 +121,6 @@ app.get('/api/data', authenticate, async (req, res) => {
       res.status(500).send('Error occurred while fetching data');
     }
   });
-
-  app.post('/api/update-song', authenticate, async (req, res) => {
-    const { title, directMediaUrl } = req.body;
-
-    try {
-        const query = 'UPDATE data SET data = JSON_SET(data, "$.directMediaUrl", ?) WHERE data->"$.title" = ?';
-        const [result] = await pool.execute(query, [directMediaUrl, title]);
-        
-        if (result.affectedRows > 0) {
-            res.status(200).json({ message: 'Song updated successfully!' });
-        } else {
-            res.status(404).json({ message: 'Song not found!' });
-        }
-    } catch (error) {
-        console.error('Error updating song:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-  
 
 const PORT = 3000;
 app.listen(PORT, () => {
