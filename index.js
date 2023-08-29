@@ -58,7 +58,7 @@ app.get('/api/get-pending-request', authenticate, async (req, res) => {
     query = 'SELECT * FROM pending_requests WHERE id = ?';
     queryParams.push(requestId);
   } else {
-    query = 'SELECT * FROM pending_requests';
+    query = 'SELECT * FROM pending_requests WHERE playUrl is NULL';
   }
 
   const [rows] = await pool.execute(query, queryParams);
