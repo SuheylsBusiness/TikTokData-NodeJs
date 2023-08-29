@@ -1,11 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const bodyParser = require('body-parser');
-let fetch;
-import('node-fetch').then(nodeFetch => {
-    fetch = nodeFetch;
-});
-
+const https = require('https');
 
 const app = express();
 app.use(bodyParser.json());
@@ -30,32 +26,38 @@ const authenticate = (req, res, next) => {
   }
 };
 
-app.get('/api/tiktok-playurl', authenticate, async (req, res) => {
+app.get('/api/tiktok-audio', authenticate, (req, res) => {
   const itemId = req.query.itemId;
-
   if (!itemId) {
-      return res.status(400).json({ error: 'itemId parameter is required' });
+      return res.status(400).json({ error: 'itemId query parameter is required' });
   }
 
-  const tikTokUrl = `https://www.tiktok.com/embed/v2/${itemId}`;
-  const encodedTikTokUrl = Buffer.from(tikTokUrl).toString('base64');
-  
-  const fetchUrl = `https://qload.info/de/tiktok-audio/get-data?link=${encodedTikTokUrl}&signature=_02B4Z6wo00f01NvETdgAAIBDeYNaAuSJQ6TbzE1AAP2Z08`;
+  const tiktokURL = `https://www.tiktok.com/embed/v2/${itemId}`;
+  const base64EncodedURL = Buffer.from(tiktokURL).toString('base64');
+  const endpointURL = `https://qload.info/de/tiktok-audio/get-data?link=${base64EncodedURL}&signature=_02B4Z6wo00f01NvETdgAAIBDeYNaAuSJQ6TbzE1AAP2Z08`;
 
-  try {
-      const response = await fetch(fetchUrl);
-      const data = await response.json();
-      const playUrl = data.value.playUrl;
+  https.get(endpointURL, (apiRes) => {
+      let data = '';
+      apiRes.on('data', (chunk) => {
+          data += chunk;
+      });
 
-      if (playUrl) {
-          return res.json({ playUrl });
-      } else {
-          throw new Error('playUrl not found');
-      }
-  } catch (error) {
-      console.error('Error fetching playUrl:', error);
-      return res.status(500).json({ error: 'Failed to retrieve playUrl' });
-  }
+      apiRes.on('end', () => {
+          try {
+              const jsonData = JSON.parse(data);
+              const playUrl = jsonData.value.playUrl;
+              if (playUrl) {
+                  res.json({ playUrl });
+              } else {
+                  res.status(500).json({ error: 'Could not parse playUrl from the response' });
+              }
+          } catch (error) {
+              res.status(500).json({ error: 'Error processing API response' });
+          }
+      });
+  }).on('error', (err) => {
+      res.status(500).json({ error: 'Error calling the API' });
+  });
 });
 
 // API Endpoint to drop and recreate "data" table
