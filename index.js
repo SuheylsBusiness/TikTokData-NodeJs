@@ -50,17 +50,28 @@ app.get('/api/tiktok-audio', authenticate, async (req, res) => {
 // API to retrieve the pending requests
 app.get('/api/get-pending-request', authenticate, async (req, res) => {
   const requestId = req.query.requestId;
-  if (!requestId) {
-    return res.status(400).json({ error: 'requestId query parameter is required' });
+  
+  let query = '';
+  let queryParams = [];
+
+  if (requestId) {
+    query = 'SELECT * FROM pending_requests WHERE id = ?';
+    queryParams.push(requestId);
+  } else {
+    query = 'SELECT * FROM pending_requests';
   }
 
-  const [rows] = await pool.execute('SELECT * FROM pending_requests WHERE id = ?', [requestId]);
+  const [rows] = await pool.execute(query, queryParams);
 
   if (rows.length === 0) {
     return res.status(404).json({ error: 'Request not found' });
   }
 
-  res.json({ requestId, base64EncodedURL: rows[0].url });
+  if (requestId) {
+    res.json({ requestId, base64EncodedURL: rows[0].url });
+  } else {
+    res.json(rows);
+  }
 });
 
 // API to submit the playUrl for a pending request
