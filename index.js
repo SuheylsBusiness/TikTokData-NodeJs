@@ -26,40 +26,59 @@ const authenticate = (req, res, next) => {
   }
 };
 
-app.get('/api/tiktok-audio', authenticate, (req, res) => {
+const pendingRequests = {};
+
+app.get('/api/tiktok-audio', authenticate, async (req, res) => {
   const itemId = req.query.itemId;
   if (!itemId) {
-      return res.status(400).json({ error: 'itemId query parameter is required' });
+    return res.status(400).json({ error: 'itemId query parameter is required' });
   }
 
   const tiktokURL = `https://www.tiktok.com/embed/v2/${itemId}`;
   const base64EncodedURL = Buffer.from(tiktokURL).toString('base64');
-  const endpointURL = `https://qload.info/de/tiktok-audio/get-data?link=${base64EncodedURL}&signature=_02B4Z6wo00f01NvETdgAAIBDeYNaAuSJQ6TbzE1AAP2Z08`;
+  
+  // Store in database with status 'pending'
+  const insertQuery = 'INSERT INTO pending_requests (url) VALUES (?)';
+  const [result] = await pool.execute(insertQuery, [base64EncodedURL]);
+  
+  const requestId = result.insertId;
+  pendingRequests[requestId] = res;
 
-  https.get(endpointURL, (apiRes) => {
-      let data = '';
-      apiRes.on('data', (chunk) => {
-          data += chunk;
-      });
+  res.status(202).json({ message: 'Request is being processed.', requestId });
+});
 
-      apiRes.on('end', () => {
-          try {
-              const jsonData = JSON.parse(data);
-              console.log(jsonData);
-              console.log(endpointURL);
-              const playUrl = jsonData.value.playUrl;
-              if (playUrl) {
-                  res.json({ playUrl });
-              } else {
-                  res.status(500).json({ error: 'Could not parse playUrl from the response' });
-              }
-          } catch (error) {
-              res.status(500).json({ error: 'Error processing API response' });
-          }
-      });
-  }).on('error', (err) => {
-      res.status(500).json({ error: 'Error calling the API' });
-  });
+// API to retrieve the pending requests
+app.get('/api/get-pending-request', authenticate, async (req, res) => {
+  const requestId = req.query.requestId;
+  if (!requestId) {
+    return res.status(400).json({ error: 'requestId query parameter is required' });
+  }
+
+  const [rows] = await pool.execute('SELECT * FROM pending_requests WHERE id = ?', [requestId]);
+
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Request not found' });
+  }
+
+  res.json({ requestId, base64EncodedURL: rows[0].url });
+});
+
+// API to submit the playUrl for a pending request
+app.post('/api/submit-playurl', authenticate, (req, res) => {
+  const { requestId, playUrl } = req.body;
+  if (!requestId || !playUrl) {
+    return res.status(400).json({ error: 'requestId and playUrl are required' });
+  }
+
+  const pendingRes = pendingRequests[requestId];
+  if (!pendingRes) {
+    return res.status(404).json({ error: 'Request not found or already completed' });
+  }
+
+  delete pendingRequests[requestId];
+  pendingRes.json({ playUrl });
+
+  res.status(200).json({ message: 'PlayUrl successfully submitted' });
 });
 
 // API Endpoint to drop and recreate "data" table
