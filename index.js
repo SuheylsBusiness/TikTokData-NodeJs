@@ -1,7 +1,11 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const bodyParser = require('body-parser');
-const fetch = require('node-fetch');
+let fetch;
+import('node-fetch').then(nodeFetch => {
+    fetch = nodeFetch;
+});
+
 
 const app = express();
 app.use(bodyParser.json());
