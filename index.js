@@ -75,9 +75,9 @@ app.get('/api/get-pending-request', authenticate, async (req, res) => {
 });
 
 // API to submit the playUrl for a pending request
-app.post('/api/submit-playurl', authenticate, (req, res) => {
+app.post('/api/submit-playurl', authenticate, async (req, res) => {
   const { requestId, playUrl } = req.body;
-  console.log(pendingRequests);
+
   if (!requestId || !playUrl) {
     return res.status(400).json({ error: 'requestId and playUrl are required' });
   }
@@ -87,10 +87,32 @@ app.post('/api/submit-playurl', authenticate, (req, res) => {
     return res.status(404).json({ error: 'Request not found or already completed' });
   }
 
+  // Save playUrl to database
+  const updateQuery = 'UPDATE pending_requests SET playUrl = ? WHERE id = ?';
+  await pool.execute(updateQuery, [playUrl, requestId]);
+
   delete pendingRequests[requestId];
   pendingRes.json({ playUrl });
 
-  res.status(200).json({ message: 'PlayUrl successfully submitted' });
+  // Not needed anymore since we already send a response using pendingRes.json({ playUrl });
+  // res.status(200).json({ message: 'PlayUrl successfully submitted' });
+});
+
+app.get('/api/get-playurl', authenticate, async (req, res) => {
+  const requestId = req.query.requestId;
+  
+  if (!requestId) {
+    return res.status(400).json({ error: 'requestId query parameter is required' });
+  }
+
+  const query = 'SELECT playUrl FROM pending_requests WHERE id = ?';
+  const [rows] = await pool.execute(query, [requestId]);
+
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Request not found' });
+  }
+
+  res.json({ requestId, playUrl: rows[0].playUrl });
 });
 
 // API Endpoint to drop and recreate "data" table
