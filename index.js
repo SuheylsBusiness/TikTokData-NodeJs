@@ -92,6 +92,25 @@ app.get('/api/data', authenticate, async (req, res) => {
       res.status(500).send('Error occurred while fetching data');
     }
   });
+
+  app.post('/api/update-song', authenticate, async (req, res) => {
+    const { title, directMediaUrl } = req.body;
+
+    try {
+        const query = 'UPDATE data SET data = JSON_SET(data, "$.directMediaUrl", ?) WHERE data->"$.title" = ?';
+        const [result] = await pool.execute(query, [directMediaUrl, title]);
+        
+        if (result.affectedRows > 0) {
+            res.status(200).json({ message: 'Song updated successfully!' });
+        } else {
+            res.status(404).json({ message: 'Song not found!' });
+        }
+    } catch (error) {
+        console.error('Error updating song:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
   
 
 const PORT = 3000;
